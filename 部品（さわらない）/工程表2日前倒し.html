@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>工程表 2日前倒し（どこでも版）</title>
+<style>
+  :root{
+    --bg:#eef2f7; --card:#fff; --ink:#1f2937; --muted:#6b7280;
+    --primary:#4f46e5; --primary-soft:#eef2ff; --accent:#0ea5e9; --ok:#16a34a;
+    --ok-soft:#ecfdf5; --warn:#d97706; --warn-soft:#fffbeb; --danger:#dc2626; --line:#e5e7eb;
+    --radius:16px; --shadow:0 10px 30px rgba(31,41,55,.08), 0 2px 8px rgba(31,41,55,.05);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Yu Gothic UI","Hiragino Kaku Gothic ProN","Meiryo",sans-serif;
+    color:var(--ink); background:var(--bg);
+    background-image:radial-gradient(1200px 500px at 50% -200px,#dbe4ff 0,rgba(219,228,255,0) 60%);
+    min-height:100vh; -webkit-font-smoothing:antialiased; -webkit-text-size-adjust:100%;}
+  .wrap{max-width:920px; margin:0 auto; padding:22px 16px 60px}
+  header.hero{display:flex; align-items:center; gap:14px; margin:4px 4px 18px}
+  .logo{width:52px;height:52px;flex:0 0 auto;border-radius:14px;background:linear-gradient(135deg,var(--primary),#6366f1 55%,var(--accent));display:grid;place-items:center;box-shadow:0 8px 20px rgba(79,70,229,.35)}
+  .logo svg{width:29px;height:29px;color:#fff}
+  .hero h1{font-size:20px;margin:0}
+  .hero p{margin:3px 0 0;color:var(--muted);font-size:12.5px}
+  .tag-here{display:inline-block;font-size:10.5px;font-weight:800;color:#0369a1;background:#e0f2fe;border:1px solid #bae6fd;border-radius:999px;padding:1px 8px;margin-left:6px;vertical-align:2px}
+
+  .card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid rgba(229,231,235,.8);padding:20px;margin-bottom:16px}
+  .step{display:flex;align-items:center;gap:9px;margin:0 0 13px;font-weight:700;font-size:14.5px}
+  .step .n{width:23px;height:23px;border-radius:50%;background:var(--primary-soft);color:var(--primary);display:grid;place-items:center;font-size:13px;font-weight:800}
+
+  .drop{border:2px dashed #c7cdda;border-radius:13px;padding:26px 18px;text-align:center;background:#fafbff;cursor:pointer;transition:.18s;display:block}
+  .drop:hover{border-color:var(--primary);background:#f5f7ff}
+  .drop.drag{border-color:var(--primary);background:var(--primary-soft)}
+  .drop .ic{font-size:30px}
+  .drop .big{font-weight:700;margin:8px 0 2px}
+  .drop .sub{color:var(--muted);font-size:12.5px}
+  .drop input{display:none}
+  .file{display:none;align-items:center;gap:12px;margin-top:13px;padding:11px 13px;background:var(--primary-soft);border:1px solid #dfe3ff;border-radius:11px}
+  .file.show{display:flex}
+  .file .xls{width:33px;height:33px;border-radius:8px;background:#1d8a52;color:#fff;display:grid;place-items:center;font-size:10px;font-weight:800;flex:0 0 auto}
+  .file .meta{flex:1;min-width:0}
+  .file .nm{font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .file .sz{color:var(--muted);font-size:11.5px}
+  .file .x{border:none;background:#e7eaf6;color:#555;width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:15px;flex:0 0 auto}
+
+  .opt-grp + .opt-grp{margin-top:15px}
+  .lab{font-size:13px;font-weight:700;color:#374151;margin:0 0 8px;display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+  .lab .hint{font-weight:500;color:var(--muted);font-size:11.5px}
+  .choices{display:grid;gap:8px}
+  .choice{display:flex;gap:11px;align-items:flex-start;padding:11px 13px;border:1.5px solid var(--line);border-radius:11px;cursor:pointer;transition:.15s;background:#fff}
+  .choice:hover{border-color:#c3c9d6}
+  .choice.on{border-color:var(--primary);background:var(--primary-soft);box-shadow:0 0 0 3px rgba(79,70,229,.08)}
+  .choice .dot{width:18px;height:18px;border-radius:50%;border:2px solid #c3c9d6;flex:0 0 auto;margin-top:1px;display:grid;place-items:center}
+  .choice.on .dot{border-color:var(--primary)}
+  .choice.on .dot::after{content:"";width:9px;height:9px;border-radius:50%;background:var(--primary)}
+  .choice .ttl{font-weight:700;font-size:13.5px}
+  .choice .ds{color:var(--muted);font-size:12px;margin-top:2px;line-height:1.5}
+  .badge{display:inline-block;font-size:10.5px;font-weight:800;color:var(--ok);background:var(--ok-soft);border:1px solid #b9f0d2;border-radius:999px;padding:1px 8px;margin-left:6px}
+  .badge.gray{color:#6b7280;background:#f3f4f6;border-color:#e5e7eb}
+  .toggle{display:flex;align-items:center;gap:12px;padding:11px 13px;border:1.5px solid var(--line);border-radius:11px}
+  .sw{width:46px;height:26px;border-radius:999px;background:#cbd2e0;position:relative;cursor:pointer;transition:.18s;flex:0 0 auto}
+  .sw::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.18s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+  .sw.on{background:var(--primary)}.sw.on::after{left:23px}
+  .toggle .ttl{font-weight:700;font-size:13.5px}
+  .toggle .ds{color:var(--muted);font-size:12px;margin-top:2px}
+
+  .run{width:100%;border:none;border-radius:13px;padding:15px;font-size:15.5px;font-weight:800;color:#fff;background:linear-gradient(135deg,var(--primary),#6366f1);cursor:pointer;box-shadow:0 8px 18px rgba(79,70,229,.32);transition:.15s;display:flex;align-items:center;justify-content:center;gap:9px}
+  .run:hover:not(:disabled){transform:translateY(-1px)}
+  .run:disabled{background:#c4c8d4;box-shadow:none;cursor:not-allowed}
+  .run .spin{width:18px;height:18px;border:3px solid rgba(255,255,255,.45);border-top-color:#fff;border-radius:50%;animation:sp .8s linear infinite;display:none}
+  .run.busy .spin{display:inline-block}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .method-note{font-size:12px;color:var(--muted);text-align:center;margin:11px 4px 0;line-height:1.6}
+
+  #result{display:none}
+  #result.show{display:block;animation:rise .35s ease both}
+  @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1}}
+  .res-head{display:flex;align-items:center;gap:13px;margin-bottom:6px}
+  .check{width:44px;height:44px;border-radius:50%;background:var(--ok-soft);border:1px solid #b9f0d2;display:grid;place-items:center;flex:0 0 auto}
+  .check svg{width:25px;height:25px;color:var(--ok)}
+  .res-head h2{margin:0;font-size:18px}.res-head .sub{color:var(--muted);font-size:12.5px;margin-top:2px}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:16px 0}
+  .tile{background:#f8fafc;border:1px solid var(--line);border-radius:12px;padding:12px;text-align:center}
+  .tile .k{font-size:11px;color:var(--muted);font-weight:600}
+  .tile .v{font-size:20px;font-weight:800;margin-top:3px}
+  .tile .v .arr{color:#9aa3b2;margin:0 5px;font-size:15px}
+  .tile .tag{margin-top:5px}
+  .tag{display:inline-block;font-size:10.5px;font-weight:800;border-radius:999px;padding:1px 8px}
+  .tag.ok{color:var(--ok);background:var(--ok-soft);border:1px solid #b9f0d2}
+  .tag.gray{color:#6b7280;background:#f1f3f7;border:1px solid #e5e7eb}
+  .tag.warn{color:var(--warn);background:var(--warn-soft);border:1px solid #fde9bf}
+  .btn{border-radius:11px;padding:13px;font-size:14.5px;font-weight:800;cursor:pointer;border:none;transition:.15s;width:100%}
+  .btn.dl{color:#fff;background:linear-gradient(135deg,var(--ok),#22b966);box-shadow:0 7px 16px rgba(22,163,74,.3)}
+  .btn.dl:hover{transform:translateY(-1px)}
+  .btn.again{background:#eef1f6;color:#384152;margin-top:9px}
+  .warnbar{display:none;margin-top:12px;font-size:12.5px;color:#92560a;background:var(--warn-soft);border:1px solid #fde9bf;border-radius:10px;padding:10px 12px;line-height:1.6}
+  .warnbar.show{display:block}
+
+  /* preview grid */
+  .pv-head{display:flex;align-items:center;justify-content:space-between;margin:18px 0 8px;flex-wrap:wrap;gap:6px}
+  .pv-head .t{font-weight:800;font-size:14px}
+  .pv-head .note{font-size:11.5px;color:var(--muted)}
+  .blk-cap{font-weight:700;font-size:12.5px;color:#475569;margin:14px 0 4px}
+  .gridwrap{overflow:auto;border:1px solid var(--line);border-radius:10px;-webkit-overflow-scrolling:touch}
+  table.sched{border-collapse:collapse;table-layout:fixed;width:100%;min-width:760px}
+  table.sched col{width:16.66%}
+  table.sched td{border:1px solid #d1d5db;vertical-align:top;padding:3px 5px;font-size:11px;line-height:1.35;
+    word-break:break-all;white-space:normal;height:18px}
+  table.sched tr.dh td{background:#dbe4ff;text-align:center;font-weight:800;font-size:12px;position:sticky;top:0;color:#1e3a8a}
+  footer{text-align:center;color:#9aa3b2;font-size:11.5px;margin-top:12px;line-height:1.7}
+  #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:#fff;border:1px solid var(--danger);border-left:4px solid var(--danger);color:#7f1d1d;padding:12px 16px;border-radius:11px;box-shadow:var(--shadow);font-size:13px;max-width:92%;opacity:0;pointer-events:none;transition:.25s;z-index:50;white-space:pre-line}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  @media(max-width:560px){.stats{grid-template-columns:1fr 1fr}.wrap{padding:16px 11px 50px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <div class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2.5"/><path d="M3 9h18M8 2v4M16 2v4"/><path d="M14 13l-3 2.5 3 2.5"/><path d="M11 15.5h2.6"/></svg></div>
+    <div><h1>工程表 2日前倒し<span class="tag-here">PC・タブレット対応</span></h1>
+      <p>工程表を読み込み、各仕事を「2営業日前」に並べ替え。結果は画面で確認＆ダウンロード</p></div>
+  </header>
+
+  <section class="card" id="panel-input">
+    <div class="step"><span class="n">1</span>工程表ファイルを選ぶ</div>
+    <label class="drop" id="drop">
+      <input type="file" id="fileInput" accept=".xlsx,.xlsm">
+      <div class="ic">📄</div>
+      <div class="big">タップ／クリックで選択</div>
+      <div class="sub">PCはドラッグ＆ドロップも可　(.xlsx)</div>
+    </label>
+    <div class="file" id="fileChip">
+      <div class="xls">XLSX</div>
+      <div class="meta"><div class="nm" id="fileName">—</div><div class="sz" id="fileSize"></div></div>
+      <button class="x" id="fileClear" title="取り消し">×</button>
+    </div>
+  </section>
+
+  <section class="card" id="panel-opt">
+    <div class="step"><span class="n">2</span>オプション</div>
+    <div class="opt-grp">
+      <div class="lab">先頭週からはみ出す仕事<span class="hint">（月・火を2日前にすると前週へ出る分）</span></div>
+      <div class="choices" id="spill">
+        <div class="choice on" data-v="prepend"><div class="dot"></div><div><div class="ttl">前週ブロックを追加して全部残す<span class="badge">推奨</span></div><div class="ds">一番上に前週（月〜金）の表を足し、1件も消さずに残します。</div></div></div>
+        <div class="choice" data-v="clamp"><div class="dot"></div><div><div class="ttl">先頭週の月曜にまとめる</div><div class="ds">前週は作らず、はみ出す分を月曜列の空きへ寄せます。</div></div></div>
+        <div class="choice" data-v="drop"><div class="dot"></div><div><div class="ttl">載せない</div><div class="ds">前週は過去のため、はみ出す月・火は出力しません。</div></div></div>
+      </div>
+    </div>
+    <div class="opt-grp">
+      <div class="lab">セル内の日付テキスト</div>
+      <div class="toggle"><div class="sw" id="rewriteSw"></div><div><div class="ttl">完成日も2営業日前に書き換える <span class="badge gray" id="rwState">OFF・そのまま（推奨）</span></div><div class="ds">OFFのまま推奨。文中の「12/8」等は変えず、置く列だけ動かします（受注日(9/1)等を保護）。</div></div></div>
+    </div>
+  </section>
+
+  <section class="card" id="panel-run">
+    <div class="step"><span class="n">3</span>実行</div>
+    <button class="run" id="runBtn" disabled><span class="spin"></span><span class="txt">2日前倒しを実行</span></button>
+    <div class="method-note">A〜E列（月〜金）の仕事を2営業日前へ・土日スキップ・週またぎ／F列（土・特記/凡例）はそのまま。書式・色・罫線・数式も保持。</div>
+  </section>
+
+  <section class="card" id="result">
+    <div class="res-head"><div class="check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></div>
+      <div><h2>2日前倒し 完了</h2><div class="sub">下のプレビューで確認し、Excelをダウンロードできます</div></div></div>
+    <div class="stats" id="stats"></div>
+    <button class="btn dl" id="dlBtn">⬇ Excel（.xlsx）をダウンロード</button>
+    <button class="btn again" id="againBtn">別のファイルを処理</button>
+    <div class="warnbar" id="warnbar"></div>
+
+    <div class="pv-head"><div class="t">📋 結果プレビュー</div><div class="note">色・配置はExcelと同じ。横スクロールできます</div></div>
+    <div id="grid"></div>
+  </section>
+
+  <footer>完全オフラインで動作（ネット送信なし）／Excelの書式・色・罫線・数式を保持<br>PC・Android・iPad のブラウザで動きます　·　powered by ExcelJS</footer>
+</div>
+<div id="toast"></div>
+
+<script src="lib/exceljs.min.js"></script>
+<script src="engine.js"></script>
+<script>
+(function(){
+  "use strict";
+  var file=null, lastBlob=null, outName="工程表_2日前倒し.xlsx", rewrite=false, busyFlag=false;
+  var $=function(i){return document.getElementById(i);};
+  var drop=$("drop"), fileInput=$("fileInput"), fileChip=$("fileChip"), fileName=$("fileName"),
+      fileSize=$("fileSize"), fileClear=$("fileClear"), runBtn=$("runBtn"), result=$("result"),
+      spill=$("spill"), rewriteSw=$("rewriteSw"), rwState=$("rwState");
+
+  function human(n){return n<1024?n+" B":n<1048576?(n/1024).toFixed(1)+" KB":(n/1048576).toFixed(2)+" MB";}
+  function base(n){return (n||"").replace(/\.(xlsx|xlsm)$/i,"");}
+  function isXlsx(n){return /\.(xlsx|xlsm)$/i.test(n||"");}
+
+  function setFile(f){
+    if(!f)return;
+    if(!isXlsx(f.name)){toast("Excel(.xlsx)ファイルを選んでください。");return;}
+    file=f; fileName.textContent=f.name; fileSize.textContent=human(f.size||0);
+    fileChip.classList.add("show"); runBtn.disabled=false; result.classList.remove("show");
+  }
+  function clearFile(){file=null; fileInput.value=""; fileChip.classList.remove("show"); runBtn.disabled=true; result.classList.remove("show");}
+  fileInput.addEventListener("change",function(e){setFile(e.target.files[0]);});
+  fileClear.addEventListener("click",function(e){e.preventDefault();e.stopPropagation();clearFile();});
+  ["dragenter","dragover"].forEach(function(ev){drop.addEventListener(ev,function(e){e.preventDefault();drop.classList.add("drag");});});
+  ["dragleave","drop"].forEach(function(ev){drop.addEventListener(ev,function(e){e.preventDefault();drop.classList.remove("drag");});});
+  drop.addEventListener("drop",function(e){if(e.dataTransfer&&e.dataTransfer.files.length)setFile(e.dataTransfer.files[0]);});
+
+  spill.addEventListener("click",function(e){var c=e.target.closest(".choice");if(!c)return;spill.querySelectorAll(".choice").forEach(function(x){x.classList.remove("on");});c.classList.add("on");});
+  function spillVal(){return (spill.querySelector(".choice.on")||{}).dataset.v||"prepend";}
+  rewriteSw.addEventListener("click",function(){rewrite=!rewrite;rewriteSw.classList.toggle("on",rewrite);rwState.textContent=rewrite?"ON・書き換える（試験的）":"OFF・そのまま（推奨）";rwState.className="badge "+(rewrite?"":"gray");rwState.style.color=rewrite?"#b45309":"";});
+
+  var toastT; function toast(m){var t=$("toast");t.textContent=m;t.classList.add("show");clearTimeout(toastT);toastT=setTimeout(function(){t.classList.remove("show");},4600);}
+  function busy(on){busyFlag=on;runBtn.classList.toggle("busy",on);runBtn.disabled=on||!file;runBtn.querySelector(".txt").textContent=on?"処理中…":"2日前倒しを実行";}
+
+  function readFile(f){return new Promise(function(res,rej){var r=new FileReader();r.onload=function(){res(r.result);};r.onerror=rej;r.readAsArrayBuffer(f);});}
+
+  async function process(arrayBuffer, nameBase){
+    var E=window.KouteiEngine;
+    var wb=await E.loadWorkbook(arrayBuffer);
+    var res=E.transform(wb,{spillover:spillVal(),rewriteDates:rewrite});
+    lastBlob=await E.toBlob(wb);
+    outName=base(nameBase)+"_2日前倒し.xlsx";
+    showResult(res.summary, res.grid);
+  }
+
+  runBtn.addEventListener("click",function(){
+    if(!file||busyFlag)return; busy(true);
+    readFile(file).then(function(buf){return process(buf,file.name);})
+      .then(function(){busy(false);})
+      .catch(function(err){busy(false);toast((err&&err.message)||String(err));console.error(err);});
+  });
+
+  function tile(k,v,tag,cls){return '<div class="tile"><div class="k">'+k+'</div><div class="v">'+v+'</div>'+(tag?'<div class="tag '+(cls||"gray")+'">'+tag+'</div>':'')+'</div>';}
+  function arrow(a,b){return a+'<span class="arr">→</span>'+b;}
+  function esc(s){return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+
+  function renderGrid(grid){
+    var html="";
+    grid.forEach(function(blk,bi){
+      html+='<div class="blk-cap">第'+(bi+1)+'週　'+blk.dates[0]+' 〜 '+blk.dates[5]+'</div>';
+      html+='<div class="gridwrap"><table class="sched"><colgroup>'+
+            '<col><col><col><col><col><col></colgroup>';
+      html+='<tr class="dh">'; blk.dates.forEach(function(d){html+='<td>'+d+'</td>';}); html+='</tr>';
+      blk.rows.forEach(function(row){
+        html+='<tr>';
+        row.forEach(function(cell){
+          var st=cell.bg?(' style="background:'+cell.bg+'"'):'';
+          html+='<td'+st+'>'+esc(cell.text)+'</td>';
+        });
+        html+='</tr>';
+      });
+      html+='</table></div>';
+    });
+    $("grid").innerHTML=html;
+  }
+
+  function showResult(s, grid){
+    var sp=s.spillover||"prepend", ji=s.jobs_in_work, jo=s.jobs_out_work, tag, cls;
+    if(sp==="prepend"&&ji===jo){tag="抽出漏れゼロ ✓";cls="ok";}
+    else if(sp==="drop"){tag="前週分は除外";cls="gray";}
+    else if(jo<ji){tag="−"+(ji-jo)+"件";cls="warn";}
+    else {tag="一致 ✓";cls="ok";}
+    $("stats").innerHTML=
+      tile("週ブロック",arrow(s.blocks_in,s.blocks_out),null)+
+      tile("仕事（月〜金）",arrow(ji,jo),tag,cls)+
+      tile("特記/凡例（F列）",(s.jobs_out_f!=null?s.jobs_out_f:"—"),"保持","gray");
+    var wb=$("warnbar"),msgs=[];
+    if(s.rewrite_dates)msgs.push("⚠ セル内の日付を書き換えました（試験的）。受注日などが意図せず変わっていないか確認してください。");
+    if(s.truncated)msgs.push("⚠ "+s.truncated+" 件が月曜列に入り切らず省略されました。");
+    if(sp==="drop")msgs.push("※「載せない」設定のため、先頭週の月・火の仕事は出力に含まれません。");
+    if(msgs.length){wb.innerHTML=msgs.join("<br>");wb.classList.add("show");}else{wb.classList.remove("show");wb.innerHTML="";}
+    renderGrid(grid);
+    result.classList.add("show");
+    result.scrollIntoView({behavior:"smooth",block:"start"});
+  }
+
+  function download(){
+    if(!lastBlob)return;
+    var url=URL.createObjectURL(lastBlob);
+    var a=document.createElement("a");a.href=url;a.download=outName;document.body.appendChild(a);a.click();
+    setTimeout(function(){URL.revokeObjectURL(url);a.remove();},1500);
+  }
+  $("dlBtn").addEventListener("click",download);
+  $("againBtn").addEventListener("click",function(){clearFile();$("panel-input").scrollIntoView({behavior:"smooth",block:"start"});});
+
+  // demo（見た目確認用）: サンプルを取得して自動処理
+  if(/[?&]demo=1/.test(location.search)){
+    fetch("_sample.xlsx?"+Date.now()).then(function(r){return r.arrayBuffer();}).then(function(buf){
+      file={name:"工程表_製造部.xlsx",size:buf.byteLength};
+      fileName.textContent=file.name;fileSize.textContent=human(buf.byteLength);fileChip.classList.add("show");runBtn.disabled=false;
+      return process(buf,file.name);
+    }).catch(function(e){toast("demo: "+e);});
+  }
+})();
+</script>
+</body>
+</html>
