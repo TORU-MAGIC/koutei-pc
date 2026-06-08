@@ -228,7 +228,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
  * koutei_shift.py と同じロジックをブラウザ内で実行する。
  *   ・A〜E列(月〜金)の仕事を2営業日前の列へ移動(週またぎ・土日スキップ)
  *   ・F列(土/特記/凡例)はそのまま / 値・塗り色・フォント・配置を一緒に移動
- *   ・罫線(枠)は位置固定 / 日付は左上=実値・他は数式の自己増殖型
+ *   ・通常罫線は位置固定 / 黒枠は仕事と一緒に移動 / 日付は実値
  * ExcelJS(window.ExcelJS) が読み込まれている前提。
  * ===================================================================== */
 (function (root) {
@@ -313,8 +313,54 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     return {
       value: cloneVal(cell.value),
       font: clone(cell.font), fill: clone(cell.fill),
-      alignment: clone(cell.alignment), numFmt: cell.numFmt
+      alignment: clone(cell.alignment), numFmt: cell.numFmt,
+      border: clone(cell.border)   // 黒枠を仕事と一緒に動かすため保持
     };
+  }
+
+  // 黒枠は仕事と一緒に動かす。
+  // 以前は thin をすべて構造枠として固定していたが、Excel の黒枠は
+  // 「thin + 黒色」で入ることがあるため、テンプレート罫線との差分も見る。
+  function colorKey(color) {
+    if (!color) return "";
+    if (color.argb) return String(color.argb).toUpperCase().replace(/^FF/, "");
+    if (color.rgb) return String(color.rgb).toUpperCase().replace(/^FF/, "");
+    if (color.indexed !== undefined) return "I:" + color.indexed;
+    if (color.theme !== undefined) return "T:" + color.theme + ":" + (color.tint || 0);
+    return JSON.stringify(color);
+  }
+  function sideKey(side) {
+    if (!side || !side.style) return "";
+    return side.style + "|" + colorKey(side.color);
+  }
+  function isDarkBorderColor(color) {
+    var k = colorKey(color);
+    if (!k || !/^[0-9A-F]{6}$/.test(k)) return false;
+    var r = parseInt(k.substring(0, 2), 16);
+    var g = parseInt(k.substring(2, 4), 16);
+    var b = parseInt(k.substring(4, 6), 16);
+    return r <= 80 && g <= 80 && b <= 80;
+  }
+  function isAutoBorderColor(color) {
+    return !color || color.auto === true || color.auto === 1 || color.indexed === 64;
+  }
+  function isSpecialSide(side, tplSide) {
+    if (!side || !side.style) return false;
+    if (side.style !== "thin" && side.style !== "slantDashDot" && side.style !== "hair") return true;
+    if (sideKey(side) === sideKey(tplSide)) return false;
+    return isDarkBorderColor(side.color) || (isAutoBorderColor(side.color) && !tplSide);
+  }
+  function mergeBorder(tplB, srcB) {
+    if (!srcB) return tplB ? clone(tplB) : {};
+    tplB = tplB || {};
+    function pick(t, s) { return isSpecialSide(s, t) ? clone(s) : (t ? clone(t) : undefined); }
+    return {
+      top: pick(tplB.top, srcB.top), bottom: pick(tplB.bottom, srcB.bottom),
+      left: pick(tplB.left, srcB.left), right: pick(tplB.right, srcB.right)
+    };
+  }
+  function shouldMoveBorder(data) {
+    return data && !isEmptyVal(data.value);
   }
   function blankData() {
     return {
@@ -325,18 +371,21 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       numFmt: "General"
     };
   }
-  function putCell(ws, r, c, data, border) {
+  function putCell(ws, r, c, data, border, moveBorder) {
     var cell = ws.getCell(r, c);
     // 重要: スタイルは「1個のフレッシュなオブジェクト」をまとめて代入する。
     // 個別プロパティ代入(cell.fill= 等)は ExcelJS が列/行の共有スタイルを
     // 読み書きするため、隣セルへの書き込みで巻き添えリセットが起こる。
     cell.value = (data.value === undefined ? null : cloneVal(data.value));
+    var bd;
+    if (moveBorder && shouldMoveBorder(data)) bd = mergeBorder(border, data.border);   // 構造枠+黒枠を一緒に運ぶ
+    else bd = border ? clone(border) : {};
     cell.style = {
       font: data.font ? clone(data.font) : { name: "ＭＳ Ｐゴシック", size: 14, bold: true },
       fill: data.fill ? clone(data.fill) : { type: "pattern", pattern: "none" },
       alignment: data.alignment ? clone(data.alignment) : { vertical: "middle" },
       numFmt: data.numFmt || "General",
-      border: border ? clone(border) : {}
+      border: bd
     };
   }
 
@@ -374,29 +423,44 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     return { work: work, fcol: fcol };
   }
 
-  // ---- 割り付け -------------------------------------------------------
-  function buildMapping(nb, spillover) {
-    var workMap = {}, fmap = {}, extra = [], outNb, bi, ci, col, i, outflat, ob, cOut;
-    if (spillover === "prepend") {
-      outNb = nb + 1;
-      for (bi = 0; bi < nb; bi++) for (ci = 0; ci < WORK_COLS.length; ci++) {
-        col = WORK_COLS[ci]; i = bi * N_WORK + ci; outflat = i + N_WORK - SHIFT;
-        ob = Math.floor(outflat / N_WORK); cOut = WORK_COLS[outflat % N_WORK];
-        workMap[ob + "," + cOut] = [bi, col];
-      }
-      for (bi = 0; bi < nb; bi++) fmap[bi + 1] = bi;
-    } else {
-      outNb = nb;
-      for (bi = 0; bi < nb; bi++) for (ci = 0; ci < WORK_COLS.length; ci++) {
-        col = WORK_COLS[ci]; i = bi * N_WORK + ci; outflat = i - SHIFT;
-        if (outflat < 0) { extra.push([bi, col]); continue; }
-        ob = Math.floor(outflat / N_WORK); cOut = WORK_COLS[outflat % N_WORK];
-        workMap[ob + "," + cOut] = [bi, col];
-      }
-      for (bi = 0; bi < nb; bi++) fmap[bi] = bi;
-      if (spillover === "drop") extra = [];
+  // ---- 割り付け(祝日を除外して2営業日前倒し) -------------------------
+  // holidays: { "bi,c": true } 形式。出力の稼働列系列 W(祝日除外)で2つ前へ移す。
+  function buildMapping(nb, spillover, holidays) {
+    holidays = holidays || {};
+    var outNb = (spillover === "prepend") ? nb + 1 : nb;
+    function origOf(ob) {
+      if (spillover === "prepend") return ob >= 1 ? ob - 1 : null;
+      return ob < nb ? ob : null;
     }
-    return { outNb: outNb, workMap: workMap, fmap: fmap, extra: extra };
+    var outHolidays = {}, W = [], ob, ci, c, o;
+    for (ob = 0; ob < outNb; ob++) {
+      o = origOf(ob);
+      for (ci = 0; ci < WORK_COLS.length; ci++) {
+        c = WORK_COLS[ci];
+        if (o !== null && holidays[o + "," + c]) outHolidays[ob + "," + c] = true;
+        else W.push([ob, c]);
+      }
+    }
+    var pos = {}, idx;
+    for (idx = 0; idx < W.length; idx++) pos[W[idx][0] + "," + W[idx][1]] = idx;
+
+    var workMap = {}, extra = [], bi, P, t, tgt;
+    for (bi = 0; bi < nb; bi++) for (ci = 0; ci < WORK_COLS.length; ci++) {
+      c = WORK_COLS[ci];
+      if (holidays[bi + "," + c]) continue;            // 祝日は仕事なし
+      var obCorr = (spillover === "prepend") ? bi + 1 : bi;
+      P = pos[obCorr + "," + c];
+      if (P === undefined) continue;
+      t = P - SHIFT;
+      if (t >= 0) { tgt = W[t]; workMap[tgt[0] + "," + tgt[1]] = [bi, c]; }
+      else extra.push([bi, c]);
+    }
+    if (spillover === "drop") extra = [];
+
+    var fmap = {};
+    for (ob = 0; ob < outNb; ob++) { o = origOf(ob); if (o !== null) fmap[ob] = o; }
+
+    return { outNb: outNb, workMap: workMap, fmap: fmap, extra: extra, outHolidays: outHolidays };
   }
 
   // ---- 数え上げ -------------------------------------------------------
@@ -425,14 +489,35 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     var jobsInWork = countWork(work);
     var jobsInF = 0; for (var bi0 = 0; bi0 < nb; bi0++) fcol[bi0].forEach(function (d) { if (!isEmptyVal(d.value)) jobsInF++; });
 
-    var map = buildMapping(nb, spillover), outNb = map.outNb, workMap = map.workMap, fmap = map.fmap, extra = map.extra;
+    // 祝日検出: 平日(A〜E)の「日付セル」に塗りがあれば祝日(=稼働日から除外)。
+    // 土曜(F)のピンクは祝日でないので対象外。日付セルの塗りは出力でも保持する。
+    var holidays = {}, dateFills = {}, bih, ch;
+    for (bih = 0; bih < nb; bih++) {
+      dateFills[bih] = {};
+      for (var ci2 = 0; ci2 < WORK_COLS.length; ci2++) {
+        ch = WORK_COLS[ci2];
+        var dcell = ws.getCell(blocks[bih].dateRow, ch);
+        dateFills[bih][ch] = clone(dcell.fill);
+        if (dcell.fill && dcell.fill.pattern === "solid") holidays[bih + "," + ch] = true;
+      }
+    }
+
+    var map = buildMapping(nb, spillover, holidays), outNb = map.outNb;
+
+    // 出力の祝日 日付セルに塗り(ピンク)を反映する対応表
+    var outDateFill = {};
+    Object.keys(map.outHolidays).forEach(function (key) {
+      var p = key.split(","), ob = +p[0], c = +p[1];
+      var o = (spillover === "prepend") ? ob - 1 : ob;
+      if (o >= 0 && o < nb) outDateFill[key] = dateFills[o][c];
+    });
 
     // 前週ブロックの基準日(月曜) = 先頭月曜 - 7日
     var anchor = new Date(first.getTime());
     if (spillover === "prepend") anchor = new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth(), first.getUTCDate() - 7, 12, 0, 0));
     else anchor = new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth(), first.getUTCDate(), 12, 0, 0));
 
-    var truncated = writeOutput(ws, tpl, work, fcol, map, stride, height, anchor, rewriteDates, refYear, origRowCount);
+    var truncated = writeOutput(ws, tpl, work, fcol, map, stride, height, anchor, rewriteDates, refYear, origRowCount, outDateFill);
 
     // 出力後の数え上げ + プレビュー用グリッド
     var det2 = detectBlocks(ws), oblocks = det2.blocks;
@@ -457,11 +542,12 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     };
   }
 
-  function writeOutput(ws, tpl, work, fcol, map, stride, height, anchor, rewriteDates, refYear, origRowCount) {
+  function writeOutput(ws, tpl, work, fcol, map, stride, height, anchor, rewriteDates, refYear, origRowCount, outDateFill) {
     var outNb = map.outNb, workMap = map.workMap, fmap = map.fmap, extra = map.extra;
+    outDateFill = outDateFill || {};
     var ob, off, k, c, r, base, truncated = 0;
 
-    function setC(r, c, off, data) { putCell(ws, r, c, data, tpl.border[off + "," + c]); }
+    function setC(r, c, off, data, moveBorder) { putCell(ws, r, c, data, tpl.border[off + "," + c], moveBorder); }
 
     for (ob = 0; ob < outNb; ob++) {
       base = ob * stride;
@@ -478,6 +564,8 @@ https://github.com/nodeca/pako/blob/main/LICENSE
         var d = clone(tpl.date[c]);
         d.value = new Date(Date.UTC(anchor.getUTCFullYear(), anchor.getUTCMonth(),
           anchor.getUTCDate() + 7 * ob + (c - 1), 12, 0, 0));
+        // 日付セルの塗りは明示: 祝日ならピンク / それ以外は必ず無し(先頭週の祝日が全週へ伝播するのを防ぐ)
+        d.fill = outDateFill[ob + "," + c] ? clone(outDateFill[ob + "," + c]) : { type: "pattern", pattern: "none" };
         setC(dateRow, c, 1, d);
       }
 
@@ -492,14 +580,14 @@ https://github.com/nodeca/pako/blob/main/LICENSE
             var data = clone(work[src[0] + "," + src[1]][k]);
             data.value = cloneVal(work[src[0] + "," + src[1]][k].value);
             if (rewriteDates) data.value = shiftDatesInText(data.value, refYear);
-            setC(r, c, off, data);
+            setC(r, c, off, data, true);   // 黒枠を一緒に移動
           }
         }
         var bisrc = fmap[ob];
         if (bisrc === undefined) setC(r, SPECIAL_COL, off, blankData());
         else {
           var fd = clone(fcol[bisrc][k]); fd.value = cloneVal(fcol[bisrc][k].value);
-          setC(r, SPECIAL_COL, off, fd);
+          setC(r, SPECIAL_COL, off, fd, true);   // 黒枠を一緒に移動
         }
       }
 
@@ -518,7 +606,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
         var kk = freeKs.shift(), o = 2 + kk, rr = o + 1;
         var data = clone(dd); data.value = cloneVal(dd.value);
         if (rewriteDates) data.value = shiftDatesInText(data.value, refYear);
-        setC(rr, col, o, data);
+        setC(rr, col, o, data, true);   // 黒枠を一緒に移動
       });
     }
 
@@ -542,8 +630,12 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     var out = [];
     for (var ob = 0; ob < oblocks.length; ob++) {
       var monday = new Date(Date.UTC(anchor.getUTCFullYear(), anchor.getUTCMonth(), anchor.getUTCDate() + 7 * ob, 12, 0, 0));
-      var dates = [];
-      for (var c = 0; c < 6; c++) dates.push(fmtDate(new Date(Date.UTC(monday.getUTCFullYear(), monday.getUTCMonth(), monday.getUTCDate() + c, 12, 0, 0))));
+      var dates = [], hol = [], dr = oblocks[ob].dateRow;
+      for (var c = 0; c < 6; c++) {
+        dates.push(fmtDate(new Date(Date.UTC(monday.getUTCFullYear(), monday.getUTCMonth(), monday.getUTCDate() + c, 12, 0, 0))));
+        var dcell = ws.getCell(dr, c + 1);
+        hol.push(c < 5 && !!(dcell.fill && dcell.fill.pattern === "solid"));   // 平日(A-E)の塗り=祝日
+      }
       var rows = [], cs = oblocks[ob].contentStart, lastNonEmpty = -1;
       for (var k = 0; k < height; k++) {
         var row = [];
@@ -556,7 +648,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
         rows.push(row);
       }
       rows = rows.slice(0, Math.max(lastNonEmpty + 1, 1));
-      out.push({ dates: dates, rows: rows });
+      out.push({ dates: dates, holidays: hol, rows: rows });
     }
     return out;
   }
@@ -639,7 +731,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       html+='<div class="blk-cap">第'+(bi+1)+'週　'+blk.dates[0]+' 〜 '+blk.dates[5]+'</div>';
       html+='<div class="gridwrap"><table class="sched"><colgroup>'+
             '<col><col><col><col><col><col></colgroup>';
-      html+='<tr class="dh">'; blk.dates.forEach(function(d){html+='<td>'+d+'</td>';}); html+='</tr>';
+      html+='<tr class="dh">'; blk.dates.forEach(function(d,i){var h=blk.holidays&&blk.holidays[i];var hs=h?' style="background:#ff99cc;color:#7a1f4d"':'';html+='<td'+hs+'>'+(h?'祝 ':'')+d+'</td>';}); html+='</tr>';
       blk.rows.forEach(function(row){
         html+='<tr>';
         row.forEach(function(cell){
