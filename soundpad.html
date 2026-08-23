@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0d0f12">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Magic Show Cue - 効果音パッド</title>
+  <link rel="stylesheet" href="./soundpad.css">
+</head>
+<body>
+  <main class="soundpad-shell">
+    <header class="soundpad-header">
+      <div id="soundpadStatus" class="soundpad-status is-locked" role="status" aria-live="polite">
+        <span class="soundpad-status-dot" aria-hidden="true"></span>
+        <span class="soundpad-status-copy">
+          <strong id="soundpadStatusText">効果音：有効化待ち</strong>
+          <small id="soundpadReadyCount">0 / 6 準備</small>
+        </span>
+      </div>
+      <button id="stopAllSounds" class="soundpad-stop" type="button" disabled>■ 全停止</button>
+    </header>
+
+    <section id="soundpadGrid" class="soundpad-grid" aria-label="効果音パッド">
+      <button class="soundpad-pad pad-correct" data-sound-id="correct" type="button" disabled>
+        <span class="soundpad-pad-number">1</span>
+        <span class="soundpad-pad-icon" aria-hidden="true">✓</span>
+        <strong>ピンポーン</strong>
+        <small>正解・当たり</small>
+      </button>
+
+      <button class="soundpad-pad pad-wrong" data-sound-id="wrong" type="button" disabled>
+        <span class="soundpad-pad-number">2</span>
+        <span class="soundpad-pad-icon" aria-hidden="true">×</span>
+        <strong>ブザー</strong>
+        <small>不正解・外れ</small>
+      </button>
+
+      <button class="soundpad-pad pad-sparkle" data-sound-id="sparkle" type="button" disabled>
+        <span class="soundpad-pad-number">3</span>
+        <span class="soundpad-pad-icon" aria-hidden="true">✦</span>
+        <strong>キラキラ</strong>
+        <small>小物の出現</small>
+      </button>
+
+      <button class="soundpad-pad pad-whoosh" data-sound-id="whoosh" type="button" disabled>
+        <span class="soundpad-pad-number">4</span>
+        <span class="soundpad-pad-icon" aria-hidden="true">➜</span>
+        <strong>ワープ</strong>
+        <small>出現・変化</small>
+      </button>
+
+      <button class="soundpad-pad pad-vanish" data-sound-id="vanish" type="button" disabled>
+        <span class="soundpad-pad-number">5</span>
+        <span class="soundpad-pad-icon" aria-hidden="true">○</span>
+        <strong>ポフッ</strong>
+        <small>消失・煙</small>
+      </button>
+
+      <button class="soundpad-pad pad-tada" data-sound-id="tada" type="button" disabled>
+        <span class="soundpad-pad-number">6</span>
+        <span class="soundpad-pad-icon" aria-hidden="true">★</span>
+        <strong>ジャーン</strong>
+        <small>大成功・決め</small>
+      </button>
+    </section>
+
+    <footer class="soundpad-footer">
+      <label class="soundpad-volume" for="soundpadVolume">
+        <span>音量</span>
+        <input id="soundpadVolume" type="range" min="0" max="100" step="1" value="85">
+        <output id="soundpadVolumeText" for="soundpadVolume">85%</output>
+      </label>
+      <span class="soundpad-footer-note">本番中は画面を閉じない</span>
+    </footer>
+
+    <div id="soundpadAudioGate" class="soundpad-audio-gate">
+      <div class="soundpad-gate-card">
+        <p class="soundpad-eyebrow">MAGIC SHOW CUE</p>
+        <h1>スマホ効果音パッド</h1>
+        <p id="soundpadGateHelp">本番前に一度タップして、6つの効果音を準備します。</p>
+        <button id="enableSoundpadAudio" type="button">
+          <strong>音を準備する</strong>
+          <small>WAVをメモリへ事前読み込み</small>
+        </button>
+      </div>
+    </div>
+
+    <div id="soundpadToast" class="soundpad-toast" role="status" aria-live="polite" hidden></div>
+  </main>
+
+  <noscript>この効果音パッドを使うにはJavaScriptを有効にしてください。</noscript>
+  <script src="./soundpad.js"></script>
+</body>
+</html>

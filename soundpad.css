@@ -1,0 +1,532 @@
+:root {
+  color-scheme: dark;
+  --bg: #0d0f12;
+  --surface: #171b21;
+  --surface-2: #20262e;
+  --surface-3: #2a313a;
+  --line: #353d48;
+  --text: #f4f7fb;
+  --muted: #9ca8b5;
+  --soft: #c9d2dc;
+  --cyan: #22c7c9;
+  --cyan-2: #0e8f93;
+  --gold: #f0b84b;
+  --green: #47c27a;
+  --red: #f05a5a;
+  --red-2: #b93f42;
+  font-family: "Yu Gothic UI", "Meiryo", "Segoe UI", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+  background:
+    radial-gradient(circle at 18% 4%, rgba(34, 199, 201, 0.16), transparent 30rem),
+    radial-gradient(circle at 86% 96%, rgba(240, 184, 75, 0.14), transparent 30rem),
+    var(--bg);
+  color: var(--text);
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  border: 0;
+  color: var(--text);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible {
+  outline: 3px solid #ffffff;
+  outline-offset: 3px;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.soundpad-shell {
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: clamp(8px, 1.6vmin, 14px);
+  padding-top: max(10px, env(safe-area-inset-top));
+  padding-right: max(12px, env(safe-area-inset-right));
+  padding-bottom: max(10px, env(safe-area-inset-bottom));
+  padding-left: max(12px, env(safe-area-inset-left));
+}
+
+.soundpad-header {
+  min-height: 58px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+}
+
+.soundpad-status,
+.soundpad-footer {
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 12px;
+  background: rgba(18, 22, 27, 0.94);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22);
+}
+
+.soundpad-status {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+}
+
+.soundpad-status-copy {
+  min-width: 0;
+}
+
+.soundpad-status strong,
+.soundpad-status small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.soundpad-status strong {
+  font-size: clamp(13px, 3.5vw, 17px);
+}
+
+.soundpad-status small {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.soundpad-status-dot {
+  width: 13px;
+  height: 13px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--gold);
+  box-shadow: 0 0 12px rgba(240, 184, 75, 0.42);
+}
+
+.soundpad-status.is-loading .soundpad-status-dot {
+  animation: soundpad-pulse 900ms ease-in-out infinite alternate;
+}
+
+.soundpad-status.is-ready .soundpad-status-dot {
+  background: var(--green);
+  box-shadow: 0 0 15px rgba(71, 194, 122, 0.68);
+}
+
+.soundpad-status.is-error .soundpad-status-dot {
+  background: var(--red);
+  box-shadow: 0 0 15px rgba(240, 90, 90, 0.62);
+}
+
+.soundpad-stop {
+  min-width: clamp(104px, 25vw, 150px);
+  min-height: 58px;
+  padding: 0 14px;
+  border: 2px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+  background: linear-gradient(180deg, #f66d6d, var(--red-2));
+  box-shadow: 0 10px 24px rgba(185, 63, 66, 0.28);
+  font-size: clamp(15px, 4vw, 19px);
+  font-weight: 900;
+  transition: transform 60ms ease, filter 60ms ease, opacity 120ms ease;
+}
+
+.soundpad-stop:not(:disabled):active {
+  transform: translateY(2px) scale(0.985);
+  filter: brightness(1.1);
+}
+
+.soundpad-stop:disabled {
+  opacity: 0.38;
+}
+
+.soundpad-grid {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  gap: clamp(9px, 1.8vmin, 16px);
+}
+
+.soundpad-pad {
+  --pad-accent: var(--cyan);
+  --pad-glow: rgba(34, 199, 201, 0.18);
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  place-content: center;
+  gap: clamp(3px, 0.8vmin, 7px);
+  padding: clamp(12px, 2.6vmin, 24px) 9px;
+  overflow: hidden;
+  border: 2px solid rgba(34, 199, 201, 0.42);
+  border-color: color-mix(in srgb, var(--pad-accent) 48%, transparent);
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 50% 18%, var(--pad-glow), transparent 62%),
+    linear-gradient(180deg, rgba(42, 49, 58, 0.98), rgba(22, 26, 32, 0.98));
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.28);
+  text-align: center;
+  transition: transform 55ms ease, border-color 55ms ease, filter 55ms ease, opacity 120ms ease;
+}
+
+.soundpad-pad::after {
+  content: "";
+  position: absolute;
+  inset: auto 12% 0;
+  height: 3px;
+  border-radius: 999px 999px 0 0;
+  background: var(--pad-accent);
+  opacity: 0.72;
+  box-shadow: 0 0 14px var(--pad-accent);
+}
+
+.soundpad-pad-number {
+  position: absolute;
+  top: 8px;
+  left: 10px;
+  color: var(--pad-accent);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.soundpad-pad-icon {
+  color: var(--pad-accent);
+  font-size: clamp(22px, 6vmin, 38px);
+  font-weight: 900;
+  line-height: 0.9;
+  text-shadow: 0 0 14px var(--pad-glow);
+}
+
+.soundpad-pad strong {
+  font-size: clamp(18px, 5vmin, 36px);
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+}
+
+.soundpad-pad small {
+  color: var(--muted);
+  font-size: clamp(10px, 2.5vmin, 14px);
+  overflow-wrap: anywhere;
+}
+
+.soundpad-pad:active,
+.soundpad-pad.is-playing {
+  transform: translateY(2px) scale(0.982);
+  border-color: var(--pad-accent);
+  filter: brightness(1.2);
+}
+
+.soundpad-pad:disabled {
+  opacity: 0.35;
+  filter: grayscale(0.55);
+}
+
+.pad-correct {
+  --pad-accent: #4fdc8a;
+  --pad-glow: rgba(79, 220, 138, 0.2);
+}
+
+.pad-wrong {
+  --pad-accent: #ff6c6c;
+  --pad-glow: rgba(255, 108, 108, 0.2);
+}
+
+.pad-sparkle,
+.pad-tada {
+  --pad-accent: #f5bf52;
+  --pad-glow: rgba(245, 191, 82, 0.22);
+}
+
+.pad-whoosh {
+  --pad-accent: #47bdf5;
+  --pad-glow: rgba(71, 189, 245, 0.2);
+}
+
+.pad-vanish {
+  --pad-accent: #c88cff;
+  --pad-glow: rgba(200, 140, 255, 0.2);
+}
+
+.soundpad-footer {
+  min-height: 52px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 12px;
+}
+
+.soundpad-volume {
+  min-width: 0;
+  min-height: 44px;
+  display: grid;
+  grid-template-columns: auto minmax(72px, 1fr) 4ch;
+  align-items: center;
+  gap: 9px;
+  color: var(--soft);
+  font-size: 13px;
+}
+
+.soundpad-volume input {
+  width: 100%;
+  min-height: 42px;
+  margin: 0;
+  accent-color: var(--cyan);
+}
+
+.soundpad-volume output {
+  color: var(--text);
+  text-align: right;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.soundpad-footer-note {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 9px;
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.soundpad-audio-gate {
+  position: fixed;
+  z-index: 20;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding-top: max(24px, env(safe-area-inset-top));
+  padding-right: max(24px, env(safe-area-inset-right));
+  padding-bottom: max(24px, env(safe-area-inset-bottom));
+  padding-left: max(24px, env(safe-area-inset-left));
+  background:
+    radial-gradient(circle at 50% 22%, rgba(34, 199, 201, 0.14), transparent 23rem),
+    rgba(5, 7, 10, 0.93);
+  backdrop-filter: blur(6px);
+}
+
+.soundpad-gate-card {
+  width: min(450px, 100%);
+  padding: clamp(22px, 6vw, 36px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  background: rgba(23, 27, 33, 0.96);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.48);
+  text-align: center;
+}
+
+.soundpad-eyebrow {
+  margin: 0 0 9px;
+  color: var(--gold);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+}
+
+.soundpad-gate-card h1 {
+  margin: 0;
+  font-size: clamp(26px, 7vw, 38px);
+}
+
+.soundpad-gate-card > p:not(.soundpad-eyebrow) {
+  margin: 14px 0 20px;
+  color: var(--soft);
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+#enableSoundpadAudio {
+  width: 100%;
+  min-height: 88px;
+  display: grid;
+  place-content: center;
+  gap: 5px;
+  padding: 12px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #31d5d7, var(--cyan-2));
+  color: #061012;
+  box-shadow: 0 12px 32px rgba(34, 199, 201, 0.24);
+}
+
+#enableSoundpadAudio strong {
+  font-size: 21px;
+  font-weight: 900;
+}
+
+#enableSoundpadAudio small {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+#enableSoundpadAudio:disabled {
+  opacity: 0.62;
+}
+
+.soundpad-toast {
+  position: fixed;
+  z-index: 30;
+  left: 50%;
+  bottom: max(78px, calc(60px + env(safe-area-inset-bottom)));
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  transform: translateX(-50%);
+  padding: 10px 15px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  background: rgba(5, 7, 10, 0.94);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.38);
+  color: var(--text);
+  font-size: 13px;
+  text-align: center;
+}
+
+noscript {
+  position: fixed;
+  z-index: 50;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: var(--bg);
+  color: var(--text);
+  text-align: center;
+}
+
+@keyframes soundpad-pulse {
+  from {
+    opacity: 0.45;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@media (orientation: landscape) {
+  .soundpad-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .soundpad-shell {
+    gap: 7px;
+    padding-top: max(6px, env(safe-area-inset-top));
+    padding-bottom: max(6px, env(safe-area-inset-bottom));
+  }
+
+  .soundpad-header,
+  .soundpad-stop {
+    min-height: 48px;
+  }
+
+  .soundpad-status {
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+
+  .soundpad-pad {
+    padding-top: 8px;
+    padding-bottom: 7px;
+  }
+
+  .soundpad-pad-icon {
+    font-size: clamp(17px, 6vh, 27px);
+  }
+
+  .soundpad-pad strong {
+    font-size: clamp(16px, 5.5vh, 27px);
+  }
+
+  .soundpad-footer {
+    min-height: 44px;
+  }
+
+  .soundpad-volume,
+  .soundpad-volume input {
+    min-height: 36px;
+  }
+}
+
+@media (max-width: 370px) {
+  .soundpad-shell {
+    padding-right: 8px;
+    padding-left: 8px;
+  }
+
+  .soundpad-header {
+    gap: 7px;
+  }
+
+  .soundpad-stop {
+    min-width: 92px;
+    padding-right: 8px;
+    padding-left: 8px;
+  }
+
+  .soundpad-footer {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .soundpad-footer-note {
+    display: none;
+  }
+}
+
+@media (hover: hover) {
+  .soundpad-pad:not(:disabled):hover {
+    border-color: var(--pad-accent);
+    filter: brightness(1.1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .soundpad-status-dot,
+  .soundpad-pad,
+  .soundpad-stop {
+    animation: none;
+    transition: none;
+  }
+}
