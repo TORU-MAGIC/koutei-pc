@@ -3,314 +3,80 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Takumi Magic Show Flow</title>
-  <link rel="stylesheet" href="./styles.css">
-  <style>
-    html {
-      height: 100%;
-      -webkit-text-size-adjust: 100%;
-    }
-
-    body.show-flow {
-      margin: 0;
-      min-height: 100vh;
-      min-height: 100dvh;
-      overflow: hidden;
-      background: #05070d;
-      touch-action: manipulation;
-    }
-
-    .flow-bingo {
-      position: fixed;
-      inset: 0;
-      z-index: 20;
-      height: 100vh;
-      height: 100dvh;
-      background: #05070d;
-    }
-
-    .flow-bingo iframe {
-      width: 100%;
-      height: 100%;
-      border: 0;
-      display: block;
-      background: #05070d;
-    }
-
-    .flow-actions {
-      position: fixed;
-      left: max(18px, env(safe-area-inset-left));
-      bottom: max(18px, env(safe-area-inset-bottom));
-      z-index: 40;
-      display: grid;
-      grid-template-columns: auto;
-      gap: 8px;
-      align-items: end;
-      justify-items: start;
-    }
-
-    .flow-actions button,
-    .flow-back-button {
-      min-height: 42px;
-      padding: 0 12px;
-      border-radius: 8px;
-      border: 1px solid rgba(255, 255, 255, 0.18);
-      box-shadow: 0 14px 36px rgba(0, 0, 0, 0.36);
-      font-weight: 900;
-    }
-
-    .flow-start-button {
-      min-width: 0;
-      min-height: 48px !important;
-      color: #061012;
-      background: linear-gradient(180deg, #34f1ef, #0d9da0);
-      font-size: 15px;
-    }
-
-    .flow-start-button:hover {
-      background: linear-gradient(180deg, #6af7f5, #12b3b5);
-    }
-
-    .flow-setup-button,
-    .flow-back-button {
-      background: rgba(28, 34, 43, 0.94);
-      color: #f5f7fb;
-    }
-
-    .flow-setup-button {
-      min-height: 36px !important;
-      padding: 0 10px !important;
-      font-size: 12px;
-      opacity: 0.78;
-    }
-
-    .flow-back-button {
-      position: fixed;
-      left: max(18px, env(safe-area-inset-left));
-      top: max(18px, env(safe-area-inset-top));
-      z-index: 45;
-      display: none;
-    }
-
-    body.flow-music-active .flow-bingo,
-    body.flow-music-active .flow-actions {
-      display: none;
-    }
-
-    body.flow-music-active .flow-back-button {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    body.flow-bingo-active #app {
-      display: none;
-    }
-
-    body.flow-music-active {
-      overflow: auto;
-    }
-
-    body.flow-music-active #app {
-      min-height: 100vh;
-      min-height: 100dvh;
-    }
-
-    @media (max-width: 720px) {
-      .flow-actions {
-        left: max(10px, env(safe-area-inset-left));
-        right: max(10px, env(safe-area-inset-right));
-        bottom: max(10px, env(safe-area-inset-bottom));
-        grid-template-columns: minmax(0, 0.74fr) minmax(0, 1fr);
-        gap: 8px;
-        justify-items: stretch;
-      }
-
-      .flow-actions button {
-        width: 100%;
-        min-height: 50px !important;
-        padding: 0 10px;
-      }
-
-      .flow-setup-button {
-        min-height: 50px !important;
-        font-size: 12px;
-      }
-
-      .flow-start-button {
-        min-height: 54px !important;
-        font-size: 15px;
-      }
-
-      .flow-back-button {
-        left: max(10px, env(safe-area-inset-left));
-        top: max(10px, env(safe-area-inset-top));
-        min-height: 46px !important;
-      }
-    }
-
-    @media (max-width: 420px) {
-      .flow-actions {
-        grid-template-columns: 1fr;
-      }
-    }
-  </style>
+  <meta name="theme-color" content="#0d0f12">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="効果音リモコン">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; media-src 'self' blob:; worker-src 'self'; manifest-src 'self'; img-src 'self' data:">
+  <title>Magic Effect Remote</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="stylesheet" href="./effect-remote.css">
 </head>
-<body class="show-flow flow-bingo-active">
-  <section class="flow-bingo" aria-label="ビンゴ演目">
-    <iframe id="bingoFrame" src="./bingo.html" title="たくみビンゴ"></iframe>
-  </section>
+<body>
+  <header class="effect-header">
+    <div>
+      <p class="effect-eyebrow">MAGIC EFFECT REMOTE</p>
+      <h1>効果音リモコン</h1>
+      <p>効果音の設定とBluetoothリモコン再生だけの専用アプリ</p>
+    </div>
+    <span id="audioReadyStatus" class="effect-status is-waiting" role="status" aria-live="polite">
+      効果音：有効化待ち
+    </span>
+  </header>
 
-  <div class="flow-actions" aria-label="ショー進行">
-    <button id="musicSetupButton" class="flow-setup-button" type="button">音楽準備</button>
-    <button id="startMagicButton" class="flow-start-button" type="button">ビンゴ終了</button>
+  <main class="effect-main">
+    <section class="remote-panel" aria-labelledby="remotePanelTitle">
+      <div class="remote-panel-copy">
+        <h2 id="remotePanelTitle">リモコン入力テスト</h2>
+        <p>各スロットの「キーを登録」を押した時だけ割り当てを変更します。</p>
+      </div>
+
+      <div class="remote-last-input" aria-live="polite">
+        <span>最後の入力</span>
+        <kbd id="lastRemoteKey">未受信</kbd>
+        <time id="lastRemoteTime">—</time>
+      </div>
+
+      <div class="remote-last-played" aria-live="polite">
+        <span>最後に再生</span>
+        <strong id="lastPlayedEffect">未再生</strong>
+      </div>
+
+      <button id="stopAllButton" class="stop-all-button" type="button" disabled>■ 全停止</button>
+    </section>
+
+    <section class="iphone-help" aria-label="iPhoneで使う手順">
+      <strong>iPhoneで使う時</strong>
+      <span>Safariで開き、最初に「音を準備する」を1回タップしてください。PCや同じWi-Fiは不要です。</span>
+      <small>初期設定は音量＋＝効果音1、音量−＝効果音2です。「最後の入力」にキー名が表示されるリモコンだけ使用できます。Safariの共有から「ホーム画面に追加」できます。</small>
+      <small id="offlineStatus" class="offline-status" role="status" aria-live="polite">オフライン保存：準備中</small>
+    </section>
+
+    <section id="keyLearningBanner" class="key-learning-banner" role="status" hidden>
+      <span><strong id="keyLearningSlot">効果音1</strong>：次に押したリモコンキーを登録します</span>
+      <button id="cancelKeyLearning" type="button">キャンセル</button>
+    </section>
+
+    <section id="effectSlotGrid" class="effect-slot-grid" aria-label="効果音スロット"></section>
+  </main>
+
+  <div id="audioGate" class="audio-gate">
+    <div class="audio-gate-card">
+      <p class="effect-eyebrow">LOW LATENCY AUDIO</p>
+      <h2>効果音を準備</h2>
+      <p id="audioGateHelp">最初に一度タップして、内蔵効果音をメモリへ読み込みます。</p>
+      <button id="enableAudioButton" type="button">
+        <strong>音を準備する</strong>
+        <small>準備完了後にリモコンが使えます</small>
+      </button>
+    </div>
   </div>
 
-  <button id="backToBingoButton" class="flow-back-button" type="button">ビンゴへ戻る</button>
+  <div id="effectToast" class="effect-toast" role="status" aria-live="polite" hidden></div>
 
-  <div id="app"></div>
-
-  <script src="./app.js"></script>
-  <script>
-    "use strict";
-
-    const startMagicButton = document.getElementById("startMagicButton");
-    const musicSetupButton = document.getElementById("musicSetupButton");
-    const backToBingoButton = document.getElementById("backToBingoButton");
-    const bingoFrame = document.getElementById("bingoFrame");
-    const bingoFrameSrc = "./bingo.html";
-    let bingoEnded = false;
-
-    function showBingo() {
-      stopMusicCue();
-      if (bingoEnded) {
-        reloadBingoApp();
-      } else {
-        resumeBingo();
-      }
-      document.body.classList.add("flow-bingo-active");
-      document.body.classList.remove("flow-music-active");
-    }
-
-    function showMusic() {
-      document.body.classList.add("flow-music-active");
-      document.body.classList.remove("flow-bingo-active");
-    }
-
-    function stopBingoAudio() {
-      bingoFrame.dataset.stopMode = "pending";
-      try {
-        const frameWindow = bingoFrame.contentWindow;
-        if (frameWindow && frameWindow.takumiBingoShowFlow && frameWindow.takumiBingoShowFlow.stopForShowTransition) {
-          frameWindow.takumiBingoShowFlow.stopForShowTransition();
-          bingoFrame.dataset.stopMode = "api";
-          return;
-        }
-
-        const frameDocument = bingoFrame.contentDocument;
-        if (frameWindow && frameWindow.speechSynthesis) {
-          frameWindow.speechSynthesis.cancel();
-        }
-        if (frameDocument) {
-          frameDocument.querySelectorAll("audio").forEach((audio) => {
-            audio.pause();
-            if (Number.isFinite(audio.duration)) {
-              audio.currentTime = 0;
-            }
-          });
-        }
-        bingoFrame.dataset.stopMode = "fallback";
-      } catch (error) {
-        bingoFrame.dataset.stopMode = "blocked";
-        // The music cue starts even if the embedded bingo page blocks audio access.
-      }
-    }
-
-    function endBingoApp() {
-      if (bingoEnded) {
-        return;
-      }
-
-      stopBingoAudio();
-      bingoEnded = true;
-      bingoFrame.dataset.stopMode = "ended";
-      bingoFrame.removeAttribute("src");
-      bingoFrame.srcdoc = `<!doctype html>
-<html lang="ja">
-<head>
-  <meta charset="utf-8">
-  <style>
-    html, body {
-      width: 100%;
-      height: 100%;
-      margin: 0;
-      display: grid;
-      place-items: center;
-      background: #05070b;
-      color: #f7f3e7;
-      font-family: system-ui, sans-serif;
-    }
-    p {
-      margin: 0;
-      font-size: 22px;
-      font-weight: 700;
-    }
-  </style>
-</head>
-<body><p>ビンゴは終了しました</p></body>
-</html>`;
-    }
-
-    function reloadBingoApp() {
-      bingoEnded = false;
-      bingoFrame.removeAttribute("srcdoc");
-      bingoFrame.dataset.stopMode = "reloaded";
-      bingoFrame.src = bingoFrameSrc;
-    }
-
-    function resumeBingo() {
-      try {
-        const frameWindow = bingoFrame.contentWindow;
-        if (frameWindow && frameWindow.takumiBingoShowFlow && frameWindow.takumiBingoShowFlow.resumeAfterShowTransition) {
-          frameWindow.takumiBingoShowFlow.resumeAfterShowTransition();
-          bingoFrame.dataset.stopMode = "resumed";
-        }
-      } catch (error) {
-        // Returning to bingo should still work even if the iframe is not ready.
-      }
-    }
-
-    function stopMusicCue() {
-      if (window.magicShowCue && window.magicShowCue.stopForBingoReturn) {
-        window.magicShowCue.stopForBingoReturn();
-      }
-    }
-
-    async function startMusicAct() {
-      startMagicButton.disabled = true;
-      endBingoApp();
-      showMusic();
-
-      try {
-        if (window.magicShowCue && window.magicShowCue.startFirstCue) {
-          await window.magicShowCue.startFirstCue();
-        }
-      } finally {
-        startMagicButton.disabled = false;
-      }
-    }
-
-    function openMusicSetup() {
-      stopBingoAudio();
-      showMusic();
-      if (window.magicShowCue && window.magicShowCue.showSetup) {
-        window.magicShowCue.showSetup();
-      }
-    }
-
-    startMagicButton.addEventListener("click", startMusicAct);
-    musicSetupButton.addEventListener("click", openMusicSetup);
-    backToBingoButton.addEventListener("click", showBingo);
-  </script>
+  <noscript>このアプリを使うにはJavaScriptを有効にしてください。</noscript>
+  <script src="./effect-remote.js"></script>
+  <script src="./pwa.js"></script>
 </body>
 </html>

@@ -1,0 +1,13 @@
+{
+  "id": "./",
+  "name": "Magic Effect Remote",
+  "short_name": "効果音リモコン",
+  "description": "マジック演技用の低遅延効果音リモコン",
+  "lang": "ja",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0d0f12",
+  "theme_color": "#0d0f12"
+}
